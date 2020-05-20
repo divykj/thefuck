@@ -11,7 +11,32 @@ from .generic import Generic
 class Bash(Generic):
     friendly_name = 'Bash'
 
-    def app_alias(self, alias_name):
+    def collect_command(self, winpty):
+        if winpty:
+            fmt_str = '''
+                export TF_CMD_FILE=$(mktemp)
+                winpty thefuck {argument_placeholder} "$@";
+                source $TF_CMD_FILE;
+            '''
+        else:
+            fmt_str = '''
+                TF_CMD=$(
+                    thefuck {argument_placeholder} "$@"
+                ) && eval "$TF_CMD";
+            '''
+        return fmt_str.format(argument_placeholder=ARGUMENT_PLACEHOLDER)
+
+    def alter_history(self, winpty):
+        if winpty:
+            return 'history -s $(cat $TF_CMD_FILE);'
+        return 'history -s $TF_CMD;'
+
+    def cleanup_command(self, winpty):
+        if winpty:
+            return 'rm $TF_CMD_FILE;'
+        return ''
+
+    def app_alias(self, alias_name, winpty=False):
         # It is VERY important to have the variables declared WITHIN the function
         return '''
             function {name} () {{
@@ -21,18 +46,18 @@ class Bash(Generic):
                 export TF_SHELL_ALIASES=$(alias);
                 export TF_HISTORY=$(fc -ln -10);
                 export PYTHONIOENCODING=utf-8;
-                TF_CMD=$(
-                    thefuck {argument_placeholder} "$@"
-                ) && eval "$TF_CMD";
+                {collect_command}
                 unset TF_HISTORY;
                 export PYTHONIOENCODING=$TF_PYTHONIOENCODING;
                 {alter_history}
+                {cleanup_command}
             }}
         '''.format(
             name=alias_name,
-            argument_placeholder=ARGUMENT_PLACEHOLDER,
-            alter_history=('history -s $TF_CMD;'
-                           if settings.alter_history else ''))
+            collect_command=self.collect_command(winpty),
+            alter_history=(self.alter_history(winpty)
+                           if settings.alter_history else ''),
+            cleanup_command=self.cleanup_command(winpty))
 
     def instant_mode_alias(self, alias_name):
         if os.environ.get('THEFUCK_INSTANT_MODE', '').lower() == 'true':

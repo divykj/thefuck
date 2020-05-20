@@ -26,6 +26,10 @@ class Parser(object):
             const=get_alias(),
             help='[custom-alias-name] prints alias for current shell')
         self._parser.add_argument(
+            '-w', '--winpty',
+            action='store_true',
+            help='print a winpty-compatible alias')
+        self._parser.add_argument(
             '-l', '--shell-logger',
             action='store',
             help='log shell output to the file')

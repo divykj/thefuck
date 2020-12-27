@@ -1,5 +1,6 @@
 from thefuck.rules.docker_login import match, get_new_command
 from thefuck.types import Command
+from thefuck.shells import shell
 
 
 def test_match():
@@ -33,5 +34,5 @@ cb95fa0faeb1: Layer already exists
 
 
 def test_get_new_command():
-    assert get_new_command(Command('docker build -t artifactory:9090/foo/bar:fdb7c6d .', '')) == 'docker login && docker build -t artifactory:9090/foo/bar:fdb7c6d .'
-    assert get_new_command(Command('docker push artifactory:9090/foo/bar:fdb7c6d', '')) == 'docker login && docker push artifactory:9090/foo/bar:fdb7c6d'
+    assert get_new_command(Command('docker build -t artifactory:9090/foo/bar:fdb7c6d .', '')) == shell.and_('docker login', 'docker build -t artifactory:9090/foo/bar:fdb7c6d .')
+    assert get_new_command(Command('docker push artifactory:9090/foo/bar:fdb7c6d', '')) == shell.and_('docker login', 'docker push artifactory:9090/foo/bar:fdb7c6d')
